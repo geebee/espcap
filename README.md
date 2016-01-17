@@ -9,14 +9,14 @@ to parse any protocol.
 
 1. Python 2.7.10 or greater (see Known issues #1)
 2. tshark (included in Wireshark)
-2. Pyshark 0.3.5
-3. trollius 1.0.4
+2. pyshark
+3. trollius
 4. Elasticsearch client for Python
 5. click (for command line processing)
 
 ## Recommendations
 
-It is highly recommended, although not required, that you use the Anaconda Python 
+It is highly recommended, although not required, that you use the Anaconda Python
 distribution by Continuum Analytics for __Espcap__. This distribution contains the
 required Python version and bundles a rich set of programming packages for analytics and
 machine learning.  You can download Anaconda Python here: http://continuum.io/downloads.
@@ -27,10 +27,8 @@ machine learning.  You can download Anaconda Python here: http://continuum.io/do
 2. Install Pyshark, trollius, and the Elasticsearch client for Python with pip:
 
   ```
-  pip uninstall pyshark
-  pip install pyshark==0.3.5
-  pip uninstall trollius
-  pip install trollius==1.0.4
+  pip install pyshark
+  pip install trollius
   pip install elasticsearch
   pip install click
   ```
@@ -41,16 +39,16 @@ machine learning.  You can download Anaconda Python here: http://continuum.io/do
   ```
   scripts/templates.sh localhost:9200
   ```
-  
+
 5. Set the tshark_path variable in the `pyshark/config.ini` file.
 6. Run `espcap.py` to index some packet data in Elasticsearch:
-  
+
   ```
   src/espcap.py --file=test_pcaps/test_http.pcap --node=localhost:9200
   ```
-  
+
 7. Run `packet_query.sh` as follows to check that the packet data resides in your Elasticsearch instance:
-  
+
   ```
   scripts/packet_query.sh localhost:9200
   ```
@@ -58,73 +56,76 @@ machine learning.  You can download Anaconda Python here: http://continuum.io/do
 ## Running Examples
 
 + Display the following help message:
-  
+
   ```
-  espcap.py --help
-  Usage: espcap.py [OPTIONS]
-  
-  Options:
-    --node TEXT      Elasticsearch IP and port (default=None, dump packets to
-                     stdout)
-    --nic TEXT       Network interface for live capture (default=None, if file
-                     or dir specified)
-    --file TEXT      PCAP file for file capture (default=None, if nic specified)
-    --dir TEXT       PCAP directory for multiple file capture (default=None, if
-                     nic specified)
-    --bpf TEXT       Packet filter for live capture (default=all packets)
-    --chunk INTEGER  Number of packets to bulk index (default=1000)
-    --count INTEGER  Number of packets to capture during live capture
-                     (default=0, capture indefinitely)
-    --list           List the network interfaces
-    --help           Show this message and exit.
+	espcap.py --help
+	Usage: espcap.py [OPTIONS]
+
+	Options:
+		--node TEXT        Elasticsearch IP and port (default=None, dump packets to
+											stdout)
+		--nic TEXT         Network interface for live capture (default=None, if file
+											or dir specified)
+		--file TEXT        PCAP file for file capture (default=None, if nic
+											specified)
+		--dir TEXT         PCAP directory for multiple file capture (default=None,
+											if nic specified)
+		--bpf TEXT         Packet filter for live capture (default=all packets)
+		--chunk INTEGER    Number of packets to bulk index (default=1000)
+		--timeout INTEGER  How long (in seconds) to wait before timing out a bulk
+											index request (default=30)
+		--count INTEGER    Number of packets to capture during live capture
+											(default=0, capture indefinitely)
+		--list             List the network interfaces
+		--help             Show this message and exit.
   ```
-  
+
 + Load the test packet capture files and index the packets in the Elasticsearch cluster running at 10.0.0.1:9200, assuming your present working directory is `espcap/src`:
 
   ```
   espcap.py --dir=../test_pcaps --node=10.0.0.1:9200
   ```
-  
+
 + Same as the previous except load the `test_pcaps/test_http.pcap` file:
-  
+
   ```
   espcap.py --file=../test_pcaps/test_http.pcap --node=10.0.0.1:9200
   ```
-  
+
 + Do a live capture from the network interface `eth0`, get all packets and index them in the Elasticsearch cluster running at 10.0.0.1:9200:
-  
+
   ```
   espcap.py --nic=eth0 --node=10.0.0.1:9200
   ```
-  
+
 + Same as the previous except dump the packets to `stdout``:
-  
+
   ```
-  espcap.py --nic=eth0 
+  espcap.py --nic=eth0
   ```
-  
+
 + Do a live capture of TCP packets with source port or destination port == 80 and index in Elasticsearch running at 10.0.0.1:9200:
-  
+
   ```
   espcap.py --nic=eth0 --bpf='tcp port 80' --node=10.0.0.1:9200
   ```
-  
+
 + List the network interfaces
-  
+
   ```
-  espcap.py --list 
+  espcap.py --list
   ```
 
 ## Packet Indexing
 
 ### Time Series Indexing
 
-When indexing packet captures into Elasticsearch, an new index is created for each day. The 
+When indexing packet captures into Elasticsearch, an new index is created for each day. The
 index naming format is _packets-yyyy-mm-dd_. The date is UTC derived from the packet sniff
-timestamp obtained from pyshark either for live captures or the sniff timestamp read from pcap 
-files. Each index has two types, one for live capture `pcap_live` and file capture `pcap_file`. 
-Both types are dynamically mapped by Elasticsearch with exception of the date fields for either 
-`pcap_file` or `pcap_live` types which are mapped as Elasticsearch date fields if 
+timestamp obtained from pyshark either for live captures or the sniff timestamp read from pcap
+files. Each index has two types, one for live capture `pcap_live` and file capture `pcap_file`.
+Both types are dynamically mapped by Elasticsearch with exception of the date fields for either
+`pcap_file` or `pcap_live` types which are mapped as Elasticsearch date fields if
 you run the templates.sh script before indexing an packet data.
 
 Index IDs are automatically assigned by Elasticsearch.
@@ -154,9 +155,9 @@ Packet layers are mapped in four basic sections based in protocol type within ea
 + __Transport__ - transport layer which is either TCP (tcp) or UDP (udp).
 + __Application__ - high level Internet protocol such as HTTP (http), DNS (dns), etc.
 
-Packet layers reside in a JSON section called `layers`. Each of the layers reside in a JSON 
-that has the name of the protocol for that layer. The highest protocol for the whole packet, which 
-is the application protocol if the packet has such a layer, is indicate by the `protocol` 
+Packet layers reside in a JSON section called `layers`. Each of the layers reside in a JSON
+that has the name of the protocol for that layer. The highest protocol for the whole packet, which
+is the application protocol if the packet has such a layer, is indicate by the `protocol`
 field that is at the sam level as the `layers` section.
 
 Below is an example of an HTTP packet as indexed in Elasticsearch.
@@ -308,8 +309,8 @@ layers.udp.dstport        Receiver UDP port
 layers.http.chat          HTTP response
 ```
 
-Note that some layer protocols span two sections. In the above example, the HTTP layer has an `xml` 
-section associated with it. Extra sections like these can be associated with their protocol sections by 
+Note that some layer protocols span two sections. In the above example, the HTTP layer has an `xml`
+section associated with it. Extra sections like these can be associated with their protocol sections by
 checking the `envelope` field contents.
 
 ## Protocol Support
@@ -317,7 +318,7 @@ checking the `envelope` field contents.
 Technically __Espcap__ recognizes all the protocols supported by wireshark/tshark. However, the wireshark
 dissector set includes some strange protocols that are not really Internet protocols in the strictest
 sense, but are rather parts of other protocols. One example is `media` which is actually used to
-label an additional layer for the `http` protocol among other things. __Espcap__ uses the `protocols.list` 
+label an additional layer for the `http` protocol among other things. __Espcap__ uses the `protocols.list`
 to help determine the application level protocol in any given packet.
 
 This file is derived from tshark by running the `protocols.sh` script in the `conf` directory. To ensure

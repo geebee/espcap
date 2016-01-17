@@ -35,6 +35,7 @@ from elasticsearch import helpers
 
 supported_protocols = {}
 
+
 # Get supported application protocols
 def get_protocols():
     global supported_protocols
@@ -50,6 +51,7 @@ def get_protocols():
         protocol = protocol.strip()
         supported_protocols[protocol] = 1
 
+
 # Get application level protocol
 def get_highest_protocol(packet):
     global supported_protocols
@@ -60,6 +62,7 @@ def get_highest_protocol(packet):
             return layer.layer_name
     return 'wtf'
 
+
 # Get the protocol layer fields
 def get_layer_fields(layer):
     layer_fields = {}
@@ -67,6 +70,7 @@ def get_layer_fields(layer):
         if len(field_name) > 0:
             layer_fields[field_name] = getattr(layer, field_name)
     return layer_fields
+
 
 # Returns a dictionary containing the packet layer data
 def get_layers(packet):
@@ -79,7 +83,7 @@ def get_layers(packet):
     layer_above_transport = 0
 
     # Get the rest of the layers
-    for i in range(1,n):
+    for i in range(1, n):
         layer = packet.layers[i]
 
         # Network layer - ARP
@@ -92,9 +96,9 @@ def get_layers(packet):
             layers[layer.layer_name] = get_layer_fields(layer)
 
         # Transport layer - TCP, UDP, ICMP, IGMP, IDMP, or ESP
-        elif layer.layer_name == 'tcp' or layer.layer_name == 'udp' or layer.layer_name == 'icmp' or layer.layer_name == 'igmp' or layer.layer_name == 'idmp' or layer.layer_name == 'esp':
+        elif layer.layer_name in ['tcp', 'udp', 'icmp', 'igmp', 'idmp', 'esp']:
             layers[layer.layer_name] = get_layer_fields(layer)
-            if highest_protocol == 'tcp' or highest_protocol == 'udp' or highest_protocol == 'icmp' or highest_protocol == 'esp':
+            if highest_protocol in ['tcp', 'udp', 'icmp', 'esp']:
                 return highest_protocol, layers
             layer_above_transport = i+1
             break
@@ -104,7 +108,7 @@ def get_layers(packet):
             layers[layer.layer_name] = get_layer_fields(layer)
             layers[packet.layers[i].layer_name]['envelope'] = packet.layers[i-1].layer_name
 
-    for j in range(layer_above_transport,n):
+    for j in range(layer_above_transport, n):
         layer = packet.layers[j]
 
         # Application layer
@@ -118,43 +122,46 @@ def get_layers(packet):
 
     return highest_protocol, layers
 
+
 # Index packets in Elasticsearch
 def index_packets(capture, pcap_file, file_date_utc, count):
     pkt_no = 1
     for packet in capture:
         highest_protocol, layers = get_layers(packet)
-        sniff_timestamp = float(packet.sniff_timestamp) # use this field for ordering the packets in ES
-        if pcap_file == None:
+        sniff_timestamp = float(packet.sniff_timestamp)  # use this field for ordering the packets in ES
+        if pcap_file is None:
             action = {
-                '_op_type' : 'index',
-                '_index' : 'packets-'+datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%d'),
-                '_type' : 'pcap_live',
-                '_source' : {
-                    'sniff_date_utc' : datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%dT%H:%M:%S+0000'),
-                    'sniff_timestamp' : sniff_timestamp,
-                    'protocol' : highest_protocol,
-                    'layers' : layers
+                '_op_type': 'index',
+                '_index': 'packets-'+datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%d'),
+                '_type': 'pcap_live',
+                '_source': {
+                    'sniff_date_utc': datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%dT%H:%M:%S+0000'),
+                    'sniff_timestamp': sniff_timestamp,
+                    'protocol': highest_protocol,
+                    'layers': layers
                 }
             }
             yield action
         else:
             action = {
-                '_op_type' : 'index',
-                '_index' : 'packets-'+datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%d'),
-                '_type' : 'pcap_file',
-                '_source' : {
-                    'file_name' : pcap_file,
-                    'file_date_utc' : file_date_utc.strftime('%Y-%m-%dT%H:%M:%S'),
-                    'sniff_date_utc' : datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%dT%H:%M:%S+0000'),
-                    'sniff_timestamp' : sniff_timestamp,
-                    'protocol' : highest_protocol,
-                    'layers' : layers
+                '_op_type': 'index',
+                '_index': 'packets-'+datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%d'),
+                '_type': 'pcap_file',
+                '_source': {
+                    'file_name': pcap_file,
+                    'file_date_utc': file_date_utc.strftime('%Y-%m-%dT%H:%M:%S'),
+                    'sniff_date_utc': datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%dT%H:%M:%S+0000'),
+                    'sniff_timestamp': sniff_timestamp,
+                    'protocol': highest_protocol,
+                    'layers': layers
                 }
             }
             yield action
+
         pkt_no += 1
         if count > 0 and pkt_no > count:
             return
+
 
 # Dump raw packets to stdout
 def dump_packets(capture, file_date_utc, count):
@@ -175,33 +182,35 @@ def dump_packets(capture, file_date_utc, count):
         if count > 0 and pkt_no > count:
             return
 
+
 # Live capture function
-def live_capture(nic, bpf, node, chunk, count):
+def live_capture(nic, bpf, node, chunk, timeout, count):
     try:
         es = None
-        if (node != None):
+        if (node is not None):
             es = Elasticsearch(node)
 
         sniff_date_utc = datetime.utcnow()
-        if bpf == None:
+        if bpf is None:
             capture = pyshark.LiveCapture(interface=nic)
         else:
             capture = pyshark.LiveCapture(interface=nic, bpf_filter=bpf)
 
         # Dump or index packets based on whether an Elasticsearch node is available
-        if node == None:
+        if node is None:
             dump_packets(capture, sniff_date_utc, count)
         else:
-            helpers.bulk(es, index_packets(capture, None, sniff_date_utc, count), chunk_size=chunk, raise_on_error=True)
+            helpers.bulk(es, index_packets(capture, None, sniff_date_utc, count), chunk_size=chunk, request_timeout=timeout, raise_on_error=True)
 
     except Exception as e:
         print '[ERROR] ', e
 
+
 # File capture function
-def file_capture(pcap_files, node, chunk):
+def file_capture(pcap_files, node, chunk, timeout):
     try:
         es = None
-        if node != None:
+        if node is not None:
             es = Elasticsearch(node)
 
         print 'Loading packet capture file(s)'
@@ -212,13 +221,14 @@ def file_capture(pcap_files, node, chunk):
             capture = pyshark.FileCapture(pcap_file)
 
             # If no Elasticsearch node specified, dump to stdout
-            if node == None:
+            if node is None:
                 dump_packets(capture, file_date_utc, 0)
             else:
-                helpers.bulk(es, index_packets(capture, pcap_file, file_date_utc, 0), chunk_size=chunk, raise_on_error=True)
+                helpers.bulk(es, index_packets(capture, pcap_file, file_date_utc, 0), chunk_size=chunk, request_timeout=timeout, raise_on_error=True)
 
     except Exception as e:
         print '[ERROR] ', e
+
 
 # Returns list of network interfaces (nic)
 def list_interfaces():
@@ -229,11 +239,13 @@ def list_interfaces():
         interface = interfaces[i].strip(str(i+1)+'.')
         print interface
 
+
 def interrupt_handler(signum, frame):
     print
     print('Packet capture interrupted')
     print 'Done'
     sys.exit()
+
 
 @click.command()
 @click.option('--node', default=None, help='Elasticsearch IP and port (default=None, dump packets to stdout)')
@@ -242,28 +254,29 @@ def interrupt_handler(signum, frame):
 @click.option('--dir', default=None, help='PCAP directory for multiple file capture (default=None, if nic specified)')
 @click.option('--bpf', default=None, help='Packet filter for live capture (default=all packets)')
 @click.option('--chunk', default=1000, help='Number of packets to bulk index (default=1000)')
+@click.option('--timeout', default=30, help='How long (in seconds) to wait before timing out a bulk index request (default=30)')
 @click.option('--count', default=0, help='Number of packets to capture during live capture (default=0, capture indefinitely)')
 @click.option('--list', is_flag=True, help='List the network interfaces')
-def main(node, nic, file, dir, bpf, chunk, count, list):
+def main(node, nic, file, dir, bpf, chunk, timeout, count, list):
     if list:
         list_interfaces()
         sys.exit(0)
 
-    if nic == None and file == None and dir == None:
+    if nic is None and file is None and dir is None:
         print 'You must specify either file or live capture'
         sys.exit(1)
 
     signal.signal(signal.SIGINT, interrupt_handler)
 
-    if nic != None:
-        live_capture(nic, bpf, node, chunk, count)
+    if nic is not None:
+        live_capture(nic, bpf, node, chunk, timeout, count)
 
-    elif file != None:
+    elif file is not None:
         pcap_files = []
         pcap_files.append(file)
-        file_capture(pcap_files, node, chunk)
+        file_capture(pcap_files, node, chunk, timeout)
 
-    elif dir != None:
+    elif dir is not None:
         pcap_files = []
         files = os.listdir(dir)
         files.sort()
@@ -272,7 +285,7 @@ def main(node, nic, file, dir, bpf, chunk, count, list):
                 pcap_files.append(dir+file)
             else:
                 pcap_files.append(dir+'/'+file)
-        file_capture(pcap_files, node, chunk)
+        file_capture(pcap_files, node, chunk, timeout)
 
 if __name__ == '__main__':
     main()

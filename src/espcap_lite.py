@@ -31,6 +31,7 @@ import pyshark
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 
+
 def list_interfaces():
     proc = os.popen("tshark -D")  # Note tshark must be in $PATH
     tshark_out = proc.read()
@@ -39,12 +40,14 @@ def list_interfaces():
         interface = interfaces[i].strip(str(i+1)+".")
         print interface
 
+
 def get_ip_version(packet):
     for layer in packet.layers:
         if layer._layer_name == 'ip':
             return 4
         elif layer._layer_name == 'ipv6':
             return 6
+
 
 def dump_packets(capture):
     i = 1
@@ -64,6 +67,7 @@ def dump_packets(capture):
             print
         i += 1
 
+
 def index_packets(capture):
     for packet in capture:
         if packet.transport_layer == 'TCP':
@@ -78,13 +82,14 @@ def index_packets(capture):
                 '_index': 'packets_lite',
                 '_type': 'test',
                 '_source': {
-                   'srcip' : ip.src,
-                   'srcport' : packet.tcp.srcport,
-                   'dstip' : ip.dst,
-                   'dstport' : packet.tcp.dstport
+                   'srcip': ip.src,
+                   'srcport': packet.tcp.srcport,
+                   'dstip': ip.dst,
+                   'dstport': packet.tcp.dstport
                 }
             }
             yield action
+
 
 @click.command()
 @click.option('--node', default=None, help='Elasticsearch IP and port (default=None)')
@@ -95,21 +100,21 @@ def main(node, nic, file, list):
     if list:
         list_interfaces()
         sys.exit(0)
-    elif nic == None and file == None:
+    elif nic is None and file is None:
         print 'You must specify either a network interface or packet capture file'
         sys.exit(1)
 
     capture = None
-    if nic == None:
+    if nic is None:
         capture = pyshark.FileCapture(file)
-    elif file == None:
+    elif file is None:
         capture = pyshark.LiveCapture(nic)
 
-    if node == None:
+    if node is None:
         dump_packets(capture)
     else:
         es = Elasticsearch(node)
-        helpers.bulk(es, index_packets(capture), chunk_size=100, raise_on_error=True)
+        helpers.bulk(es, index_packets(capture), chunk_size=100, request_timeout=30, raise_on_error=True)
 
 if __name__ == '__main__':
     main()
