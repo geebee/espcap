@@ -4,21 +4,11 @@
 # to make sure all dates are properly mapped to date types
 # in Elasticsearch.
 
-if [[ $# -ne 1 ]] ; then
-    echo "usage: template.sh node"
+if [[ $# -ne 2 ]] ; then
+    echo "usage: template.sh node template"
     exit
 fi
 
-curl -XPUT 'http://'$1'/_template/packets-template' -d '
-{
-    "template": "packets-*",
-    "mappings": {
-        "_default_": {
-            "dynamic_date_formats" : [
-                "yyyy-MM-dd HH:mm:SS"
-            ]
-        }
-    }
-}'
+curl -XPUT 'http://'$1'/_template/packets-template' --data @$2
 
 echo

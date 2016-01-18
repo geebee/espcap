@@ -124,15 +124,18 @@ def get_layers(packet):
 
 
 # Index packets in Elasticsearch
-def index_packets(capture, pcap_file, file_date_utc, count):
+def index_packets(capture, pcap_file, file_date_utc, count, index_suffix):
     pkt_no = 1
     for packet in capture:
         highest_protocol, layers = get_layers(packet)
         sniff_timestamp = float(packet.sniff_timestamp)  # use this field for ordering the packets in ES
+        if index_suffix is None:
+            index_suffix = datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%d')
+
         if pcap_file is None:
             action = {
                 '_op_type': 'index',
-                '_index': 'packets-'+datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%d'),
+                '_index': 'packets-'+index_suffix,
                 '_type': 'pcap_live',
                 '_source': {
                     'sniff_date_utc': datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%dT%H:%M:%S+0000'),
@@ -145,7 +148,7 @@ def index_packets(capture, pcap_file, file_date_utc, count):
         else:
             action = {
                 '_op_type': 'index',
-                '_index': 'packets-'+datetime.utcfromtimestamp(sniff_timestamp).strftime('%Y-%m-%d'),
+                '_index': 'packets-'+index_suffix,
                 '_type': 'pcap_file',
                 '_source': {
                     'file_name': pcap_file,
@@ -184,7 +187,7 @@ def dump_packets(capture, file_date_utc, count):
 
 
 # Live capture function
-def live_capture(nic, bpf, node, chunk, timeout, count):
+def live_capture(nic, bpf, node, chunk, timeout, index_suffix, count):
     try:
         es = None
         if (node is not None):
@@ -200,14 +203,14 @@ def live_capture(nic, bpf, node, chunk, timeout, count):
         if node is None:
             dump_packets(capture, sniff_date_utc, count)
         else:
-            helpers.bulk(es, index_packets(capture, None, sniff_date_utc, count), chunk_size=chunk, request_timeout=timeout, raise_on_error=True)
+            helpers.bulk(es, index_packets(capture, None, sniff_date_utc, count, index_suffix), chunk_size=chunk, request_timeout=timeout, raise_on_error=True)
 
     except Exception as e:
         print '[ERROR] ', e
 
 
 # File capture function
-def file_capture(pcap_files, node, chunk, timeout):
+def file_capture(pcap_files, node, chunk, timeout, index_suffix):
     try:
         es = None
         if node is not None:
@@ -224,7 +227,7 @@ def file_capture(pcap_files, node, chunk, timeout):
             if node is None:
                 dump_packets(capture, file_date_utc, 0)
             else:
-                helpers.bulk(es, index_packets(capture, pcap_file, file_date_utc, 0), chunk_size=chunk, request_timeout=timeout, raise_on_error=True)
+                helpers.bulk(es, index_packets(capture, pcap_file, file_date_utc, 0, index_suffix), chunk_size=chunk, request_timeout=timeout, raise_on_error=True)
 
     except Exception as e:
         print '[ERROR] ', e
@@ -256,8 +259,9 @@ def interrupt_handler(signum, frame):
 @click.option('--chunk', default=1000, help='Number of packets to bulk index (default=1000)')
 @click.option('--timeout', default=30, help='How long (in seconds) to wait before timing out a bulk index request (default=30)')
 @click.option('--count', default=0, help='Number of packets to capture during live capture (default=0, capture indefinitely)')
+@click.option('--index-suffix', default=None, help='Index suffix - eg: "foobar" indexes to: "packets-foobar" (default=None, use date of captured packet as index suffix)')
 @click.option('--list', is_flag=True, help='List the network interfaces')
-def main(node, nic, file, dir, bpf, chunk, timeout, count, list):
+def main(node, nic, file, dir, bpf, chunk, timeout, count, index_suffix, list):
     if list:
         list_interfaces()
         sys.exit(0)
@@ -269,12 +273,12 @@ def main(node, nic, file, dir, bpf, chunk, timeout, count, list):
     signal.signal(signal.SIGINT, interrupt_handler)
 
     if nic is not None:
-        live_capture(nic, bpf, node, chunk, timeout, count)
+        live_capture(nic, bpf, node, chunk, timeout, index_suffix, count)
 
     elif file is not None:
         pcap_files = []
         pcap_files.append(file)
-        file_capture(pcap_files, node, chunk, timeout)
+        file_capture(pcap_files, node, chunk, timeout, index_suffix)
 
     elif dir is not None:
         pcap_files = []
@@ -285,7 +289,7 @@ def main(node, nic, file, dir, bpf, chunk, timeout, count, list):
                 pcap_files.append(dir+file)
             else:
                 pcap_files.append(dir+'/'+file)
-        file_capture(pcap_files, node, chunk, timeout)
+        file_capture(pcap_files, node, chunk, timeout, index_suffix)
 
 if __name__ == '__main__':
     main()

@@ -1,0 +1,249 @@
+{
+  "template" : "packets-*",
+  "settings" : {
+    "index.refresh_interval" : "60s",
+    "analysis" : {
+      "analyzer" : {
+        "domain_names": {
+          "type": "custom",
+          "filter": ["standard", "lowercase"],
+          "tokenizer": "letter"
+        }
+      }
+    }
+  },
+  "mappings" : {
+    "_default_" : {
+      "_all" : {"enabled" : true, "omit_norms": true},
+      "dynamic_templates" : [{
+        "string_fields" : {
+          "match" : "*",
+          "match_mapping_type" : "string",
+          "mapping" : {
+            "type" : "string",
+            "index": "analyzed",
+            "analyzer": "default",
+            "omit_norms": true,
+            "fields" : {
+              "raw" : {"type": "string", "index" : "not_analyzed", "ignore_above" : 1024, "doc_values": true}
+            }
+          }
+        }
+      }],
+      "properties" : {
+        "layers": {
+          "type": "object",
+          "properties": {
+						"dns": {
+              "type": "object",
+              "properties": {
+                "a": {"type": "ip", "doc_values": true},
+                "cname": {
+                  "type": "string",
+                  "index": "analyzed",
+                  "analyzer": "domain_names",
+                  "fields" : {
+                    "raw" : {"type": "string", "index" : "not_analyzed", "ignore_above" : 256, "doc_values": true}
+                  }
+                },
+                "count_add_rr": {"type": "long", "doc_values": true},
+                "count_answers": {"type": "long", "doc_values": true},
+                "count_auth_rr": {"type": "long", "doc_values": true},
+                "count_labels": {"type": "long", "doc_values": true},
+                "count_queries": {"type": "long", "doc_values": true},
+                "flags": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "flags_authenticated": {"type": "boolean", "doc_values": true},
+                "flags_authoritative": {"type": "boolean", "doc_values": true},
+                "flags_checkdisable": {"type": "boolean", "doc_values": true},
+                "flags_opcode": {"type": "boolean", "doc_values": true},
+                "flags_rcode": {"type": "boolean", "doc_values": true},
+                "flags_recavail": {"type": "boolean", "doc_values": true},
+                "flags_recdesired": {"type": "boolean", "doc_values": true},
+                "flags_response": {"type": "boolean", "doc_values": true},
+                "flags_truncated": {"type": "boolean", "doc_values": true},
+                "flags_z": {"type": "boolean", "doc_values": true},
+                "id": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "qry_class": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "qry_name": {
+                  "type": "string",
+                  "index": "analyzed",
+                  "analyzer": "domain_names",
+                  "fields" : {
+                    "raw" : {"type": "string", "index" : "not_analyzed", "ignore_above" : 256, "doc_values": true}
+                  }
+                },
+                "qry_name_len": {"type": "long", "doc_values": true},
+                "qry_type": {"type": "long", "doc_values": true},
+                "resp_class": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "resp_len": {"type": "long", "doc_values": true},
+                "resp_name": {
+                  "type": "string",
+                  "index": "analyzed",
+                  "analyzer": "domain_names",
+                  "fields" : {
+                    "raw" : {"type": "string", "index" : "not_analyzed", "ignore_above" : 256, "doc_values": true}
+                  }
+                },
+                "resp_ttl": {"type": "long", "doc_values": true},
+                "resp_type": {"type": "long", "doc_values": true},
+                "response_to": {"type": "long", "doc_values": true},
+                "time": {"type": "float", "doc_values": true}
+              }
+						},
+						"ip": {
+              "type": "object",
+              "properties": {
+                "addr": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "checksum": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "dsfield": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "dst": {"type": "ip", "doc_values": true},
+                "dst_host": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "flags": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "flags_df": {"type": "boolean", "doc_values": true},
+                "flags_mf": {"type": "boolean", "doc_values": true},
+                "flags_rb": {"type": "boolean", "doc_values": true},
+                "frag_offset": {"type": "long", "doc_values": true},
+                "geocountry": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "geodst_country": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "geosrc_country": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "hdr_len": {"type": "long", "doc_values": true},
+                "host": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "id": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "len": {"type": "long", "doc_values": true},
+                "proto": {"type": "long", "doc_values": true},
+                "src": {"type": "ip", "doc_values": true},
+                "src_host": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "ttl": {"type": "long", "doc_values": true},
+                "version": {"type": "long", "doc_values": true}
+              }
+						},
+						"http": {
+              "type": "object",
+              "properties": {
+                "chat": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "connection": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "content_length": {"type": "long", "doc_values": true},
+                "content_length_header": {"type": "long", "doc_values": true},
+                "cookie": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "cookie_pair": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "host": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "request": {"type": "long", "doc_values": true},
+                "request_full_uri": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "request_method": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "request_number": {"type": "long", "doc_values": true},
+                "request_uri": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "request_version": {"type": "string", "index": "not_analyzed", "doc_values": true}
+              }
+						},
+            "tcp": {
+              "type": "object",
+              "properties": {
+                "ack": {"type": "long", "doc_values": true},
+                "analysis": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "analysis_bytes_in_flight": {"type": "long", "doc_values": true},
+                "checksum": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "flags": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "flags_str": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "flags_ack": {"type": "boolean", "doc_values": true},
+                "flags_cwr": {"type": "boolean", "doc_values": true},
+                "flags_ecn": {"type": "boolean", "doc_values": true},
+                "flags_ns": {"type": "boolean", "doc_values": true},
+                "flags_push": {"type": "boolean", "doc_values": true},
+                "flags_res": {"type": "boolean", "doc_values": true},
+                "flags_reset": {"type": "boolean", "doc_values": true},
+                "flags_syn": {"type": "boolean", "doc_values": true},
+                "flags_urg": {"type": "boolean", "doc_values": true},
+                "hdr_len": {"type": "long", "doc_values": true},
+                "len": {"type": "long", "doc_values": true},
+                "options": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "option_len": {"type": "long", "doc_values": true},
+                "options_type_number": {"type": "long", "doc_values": true},
+                "port": {"type": "long", "doc_values": true},
+                "dstport": {"type": "long", "doc_values": true},
+                "srcport": {"type": "long", "doc_values": true},
+                "seq": {"type": "long", "doc_values": true},
+                "nxtseq": {"type": "long", "doc_values": true},
+                "stream": {"type": "long", "doc_values": true},
+                "window_size_value": {"type": "long", "doc_values": true},
+                "window_size": {"type": "long", "doc_values": true},
+                "window_size_scale_factor": {"type": "long", "doc_values": true}
+              }
+            },
+						"udp": {
+              "type": "object",
+							"properties": {
+								"checksum": {"type": "string", "index": "not_analyzed", "doc_values": true},
+								"checksum_bad": {"type": "boolean", "doc_values": true},
+								"checksum_good": {"type": "boolean", "doc_values": true},
+								"dstport": {"type": "long", "doc_values": true},
+								"length": {"type": "long", "doc_values": true},
+								"port": {"type": "long", "doc_values": true},
+								"srcport": {"type": "long", "doc_values": true},
+								"stream": {"type": "long", "doc_values": true}
+							}
+						},
+						"ssl": {
+              "type": "object",
+              "properties": {
+                "handshake_extensions_elliptic_curves": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_extensions_ec_point_formats_length": {"type": "long", "doc_values": true},
+                "handshake_extensions_server_name_len": {"type": "long", "doc_values": true},
+                "handshake_type": {"type": "long", "doc_values": true},
+                "handshake_version": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_length": {"type": "long", "doc_values": true},
+                "record_content_type": {"type": "long", "doc_values": true},
+                "handshake_comp_method": {"type": "long", "doc_values": true},
+                "handshake": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_ciphersuite": {"type": "long", "doc_values": true},
+                "handshake_extensions_server_name_type": {"type": "long", "doc_values": true},
+                "handshake_extensions_server_name_list_len": {"type": "long", "doc_values": true},
+                "handshake_comp_methods": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_extensions_length": {"type": "long", "doc_values": true},
+                "handshake_session_id": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_extensions_elliptic_curves_length": {"type": "long", "doc_values": true},
+                "handshake_session_id_length": {"type": "long", "doc_values": true},
+                "record_length": {"type": "long", "doc_values": true},
+                "handshake_ciphersuites": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_random_time": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_random": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "record_version": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_extension_type": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_comp_methods_length": {"type": "long", "doc_values": true},
+                "handshake_cipher_suites_length": {"type": "long", "doc_values": true},
+                "handshake_extension_len": {"type": "long", "doc_values": true},
+                "record": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_extension_data": {"type": "string", "index": "not_analyzed", "doc_values": true},
+                "handshake_extensions_ec_point_format": {"type": "long", "doc_values": true},
+                "handshake_extensions_server_name": {
+                  "type": "string",
+                  "index": "analyzed",
+                  "analyzer": "domain_names",
+                  "fields" : {
+                    "raw" : {"type": "string", "index" : "not_analyzed", "ignore_above" : 256, "doc_values": true}
+                  }
+                },
+                "handshake_extensions_elliptic_curve": {"type": "string", "index": "not_analyzed", "doc_values": true}
+              }
+						},
+						"data": {
+							"type": "object",
+							"properties": {
+								"tcp_reassembled_length": {"type": "long", "doc_values": true},
+								"tcp_reassembled_data": {"type": "string", "index": "no", "store": false, "doc_values": true, "ignore_above": 256},
+								"envelope": {"type": "string", "index": "not_analyzed", "doc_values": true},
+								"tcp_segment": {"type": "long", "doc_values": true},
+								"tcp_segment_count": {"type": "long", "doc_values": true},
+								"tcp_segments": {"type": "string", "index": "not_analyzed", "doc_values": true}
+							}
+						}
+          }
+        },
+        "sniff_date_utc": {"type": "date", "doc_values": true},
+        "file_date_utc": {"type": "date", "doc_values": true},
+        "sniff_timestamp": {"type": "date", "doc_values": true},
+        "protocol": {"type": "string", "index": "not_analyzed", "doc_values": true},
+        "file_name": {"type": "string", "index": "not_analyzed", "doc_values": true}
+      }
+    }
+  }
+}

@@ -9,8 +9,8 @@ to parse any protocol.
 
 1. Python 2.7.10 or greater (see Known issues #1)
 2. tshark (included in Wireshark)
-2. pyshark
-3. trollius
+2. Pyshark 0.3.5
+3. trollius 1.0.4
 4. Elasticsearch client for Python
 5. click (for command line processing)
 
@@ -27,17 +27,19 @@ machine learning.  You can download Anaconda Python here: http://continuum.io/do
 2. Install Pyshark, trollius, and the Elasticsearch client for Python with pip:
 
   ```
-  pip install pyshark
-  pip install trollius
+  pip uninstall pyshark
+  pip install pyshark=0.3.5
+  pip uninstall trollius
+  pip install trollius=1.0.4
   pip install elasticsearch
   pip install click
   ```
 
 3. Clone the __Espcap__ repo then cd into the `espcap` directory.
-4. Create the packet index template by running `scripts/templates.sh` as follows specifying the node IP address and TCP port of your Elasticsearch instance (localhost:9200 in this example):
+4. Create the packet index template by running `scripts/templates.sh` as follows specifying the node IP address and TCP port of your Elasticsearch instance (localhost:9200 in this example) then the file name of the index template to use:
 
   ```
-  scripts/templates.sh localhost:9200
+  scripts/templates.sh localhost:9200 index-templates/pcap_file.template.json
   ```
 
 5. Set the tshark_path variable in the `pyshark/config.ini` file.
